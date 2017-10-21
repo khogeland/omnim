@@ -11,7 +11,7 @@ import
     searchbox
 
 import
-    ../searchstate,
+    ../mpd/searchstate,
     ../mpd/mpdctl,
     ../util/atomicvar
 

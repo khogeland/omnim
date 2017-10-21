@@ -5,9 +5,9 @@ import
     tables
 
 import
-    mpd/album,
-    mpd/songutils,
-    mpd/mpdctl
+    album,
+    songutils,
+    mpdctl
 
 type SearchState*[T] = ref object
     mpdCtl: MpdCtl

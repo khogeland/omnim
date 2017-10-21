@@ -11,7 +11,7 @@ import
     streams
 
 import
-    searchstate,
+    mpd/searchstate,
     mpd/album,
     mpd/songutils,
     mpd/mpdctl,

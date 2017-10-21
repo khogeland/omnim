@@ -1,3 +1,4 @@
+- List line-wrapping.
 - Setup nimble and publish as package.
 - Nimbox bugs (to fix in my fork)
     - Unicode characters clobber each other and are left on screen when `clear` is called. Likely culprit would be either nimbox or termbox miscounting the length of strings due to multi-byte runes.

@@ -18,7 +18,7 @@ proc updateView(this: ListPane) =
     this.currentView = this.values[this.currentViewLocation..min(this.currentViewLocation+this.height, len(this.values)-1)]
 
 method resizePane*(this: ListPane, width, height: uint)  =
-    this.resizePane(int(width), int(height))
+    procCall Pane(this).resizePane(width, height)
     this.updateView()
 
 proc initListPane*(x, y, width, height: int): ListPane =

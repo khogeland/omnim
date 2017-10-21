@@ -6,6 +6,8 @@ This is my first real Nim project, so the code surely has plenty of messiness, a
 
 ### Usage
 
+Move with arrow keys. Enter replaces the current playlist with the selection and starts playing it.
+
 ```bash
 omnim
 -s --songs    Search individual songs instead of albums.

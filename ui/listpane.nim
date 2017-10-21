@@ -69,7 +69,6 @@ method drawTo*(this: ListPane, nb: Nimbox) =
                 styReverse
             else:
                 styNone
-        writeFile("fail", t)
         nb.print(this.x, this.y + i, t, clrDefault, clrDefault, style)
     #nb.print(this.x+100, this.y, $this.cursor)
     #nb.print(this.x+110, this.y, $this.currentViewLocation)

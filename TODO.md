@@ -8,6 +8,5 @@
 - Allow switching between album and song mode while running. Probably means refactor/remove `SearchState`.
 - Append to playlist.
 - Text navigation.
-- Resizing doesn't really work.
 - Error handling looks bad. Cosmetic issue.
 - MPD gives nonsensical errors (out-of-memory when killed??). Cosmetic issue, not my code. Might be best to leave it.

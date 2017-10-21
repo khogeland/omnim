@@ -1,0 +1,6 @@
+[submodule "pkg/nimbox"]
+	path = pkg/nimbox
+	url = https://github.com/khogeland/nimbox
+[submodule "pkg/libmpdclient.nim"]
+	path = pkg/libmpdclient.nim
+	url = https://github.com/Lompik/libmpdclient.nim

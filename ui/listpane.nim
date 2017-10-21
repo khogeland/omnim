@@ -17,6 +17,10 @@ type ListPane* = ref object of Pane
 proc updateView(this: ListPane) =
     this.currentView = this.values[this.currentViewLocation..min(this.currentViewLocation+this.height, len(this.values)-1)]
 
+method resizePane*(this: ListPane, width, height: uint)  =
+    this.resizePane(int(width), int(height))
+    this.updateView()
+
 proc initListPane*(x, y, width, height: int): ListPane =
     result = ListPane(x: x, y: y, width: width, height: height, values: newSeq[string](), wrap: false)
     result.updateView()

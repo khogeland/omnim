@@ -12,6 +12,9 @@ method resizePane*(this: Pane, width, height: int) {.base.} =
     this.width = width
     this.height = height
 
+method resizePane*(this: Pane, width, height: uint) {.base.} =
+    this.resizePane(int(width), int(height))
+
 method handleInput*(this: Pane, event: Event): bool {.base.} = discard
 
 method drawTo*(this: Pane, nb: Nimbox) {.base.} = discard

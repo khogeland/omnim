@@ -5,7 +5,8 @@ import
     unicode,
     strutils,
     locks,
-    threadpool
+    threadpool,
+    libmpdclient
 
 import
     pane,
@@ -13,33 +14,24 @@ import
     searchbox
 
 import
-    ../mpd/searchstate,
     ../mpd/mpdctl,
+    ../mpd/album,
+    ../mpd/songutils,
     ../util/atomicvar
 
-proc searchHandler(lp: ptr ListPane, searchState: ptr SearchState, query: ptr Atomic[string], uiLock: ptr Lock) {.thread.} =
+proc searchHandler[T](lp: ptr ListPane[T], searchProc: proc(s: string): seq[T], query: ptr Atomic[string], uiLock: ptr Lock) {.thread.} =
     while true:
         sleep(100)
         let current = query[].getAndSet(nil)
         if current != nil:
-            var results = searchState[].search(current)
+            var results = searchProc(current)
             withLock uiLock[]:
-                lp[].setValues(results)
+                cast[ListPane[T]](lp[]).setValues(results)
 
-proc startUi*(searchState: SearchState, mpdCtl: MpdCtl) =
-    var nb = newNimbox()
-    defer: nb.shutdown()
-
-    var listPane = initListPane(
-        0, 1, nb.width, nb.height
-    )
-
+proc mainLoop[T](mpdCtl: MpdCtl, nb: NimBox, listPane: ListPane[T], searchProc: proc(s: string): seq[T]) =
     var query = initAtomic[string](nil)
     var uiLock: Lock
     uiLock.initLock()
-
-    #TODO Is there a better way to share memory? Does this mess with GC? Also I need a "close" signal
-    spawn searchHandler(unsafeAddr listPane, unsafeAddr searchState, addr query, addr uiLock)
 
     let searchBox = initSearchBox(
         0, 0, nb.width, 1,
@@ -47,26 +39,25 @@ proc startUi*(searchState: SearchState, mpdCtl: MpdCtl) =
             query.setValue(s)
     )
 
-    nb.clear()
+    #TODO Is there a better way to share memory? Does this mess with GC? Also I need a "close" signal
+    spawn searchHandler(unsafeAddr listPane, searchProc, addr query, addr uiLock)
     while true:
-        nb.clear()
-        for i in 0..nb.height:
-            nb.print(0, i, spaces(nb.width))
-        listPane.drawTo(nb)
-        searchBox.drawTo(nb)
-        nb.present()
-        let event = nb.peekEvent(100)
-        case event.kind:
-            of EventType.Key:
-                withLock uiLock:
+        let event = nb.peekEvent(10)
+        withLock uiLock:
+            nb.clear()
+            listPane.drawTo(nb)
+            searchBox.drawTo(nb)
+            nb.present()
+            case event.kind:
+                of EventType.Key:
                     if (event.sym == Symbol.Down):
                         listPane.down()
                     elif (event.sym == Symbol.Up):
                         listPane.up()
                     elif event.sym == Symbol.Enter:
-                        listPane.getCurrentValue().map(proc(value: string) = mpdCtl.replaceAndPlay(searchState.getResult(value)))
+                        listPane.getCurrentValue().map(proc(value: T) = mpdCtl.replaceAndPlay(value))
                     elif event.sym == Symbol.Space and event.mods.contains(Modifier.Ctrl):
-                        listPane.getCurrentValue().map(proc(value: string) = mpdCtl.enqueue(searchState.getResult(value)))
+                        listPane.getCurrentValue().map(proc(value: T) = mpdCtl.enqueue(value))
                     elif event.sym == Symbol.Character:
                         searchBox.handleSearchBoxInput(event.ch)
                     elif event.sym == Symbol.Space:
@@ -75,10 +66,22 @@ proc startUi*(searchState: SearchState, mpdCtl: MpdCtl) =
                         searchBox.backspace()
                     elif event.sym == Symbol.Escape:
                         return
-            of EventType.Resize:
-                withLock uiLock:
+                of EventType.Resize:
                     listPane.resizePane(event.w, event.h)
                     searchBox.resizePane(event.w, 1)
-            else:
-                discard
+                else:
+                    discard
+
+proc startUi*(mpdCtl: MpdCtl, songMode: bool = false ) =
+    var nb = newNimbox()
+    defer: nb.shutdown()
+
+    # I couldn't get the type system to bend to my will :(
+    if songMode:
+        var listPane = initListPane[ptr mpd_song](0, 1, nb.width, nb.height)
+        mainLoop(mpdCtl, nb, listPane, proc(s: string): seq[ptr mpd_song] = mpdCtl.searchSongs(s))
+    else:
+        var listPane = initListPane[mpd_album](0, 1, nb.width, nb.height)
+        mainLoop(mpdCtl, nb, listPane, proc(s: string): seq[mpd_album] = mpdCtl.searchAlbums(s))
+
 

@@ -7,36 +7,36 @@ import
     nimbox,
     os
 
-type ListPane* = ref object of Pane
-    values*: seq[string]
+type ListPane*[T] = ref object of Pane
+    values*: seq[T]
     wrap*: bool # TODO actually implement
     currentViewLocation: int
     currentView: seq[string]
     cursor: int
 
-proc updateView(this: ListPane) =
-    this.currentView = this.values[this.currentViewLocation..min(this.currentViewLocation+this.height, len(this.values)-1)]
+proc updateView[T](this: ListPane[T]) =
+    this.currentView = this.values[this.currentViewLocation..min(this.currentViewLocation+this.height, len(this.values)-1)].map(proc(t: T): string = $t)
 
-method resizePane*(this: ListPane, width, height: uint)  =
+method resizePane*[T](this: ListPane[T], width, height: uint)  =
     procCall Pane(this).resizePane(width, height)
     this.updateView()
 
-proc initListPane*(x, y, width, height: int): ListPane =
-    result = ListPane(x: x, y: y, width: width, height: height, values: newSeq[string](), wrap: false)
+proc initListPane*[T](x, y, width, height: int): ListPane[T] =
+    result = ListPane[T](x: x, y: y, width: width, height: height, values: newSeq[T](), wrap: false)
     result.updateView()
 
-proc getCurrentValue*(this: ListPane): Option[string] =
+proc getCurrentValue*[T](this: ListPane[T]): Option[T] =
     return
         if this.values.len > 0:
             some(this.values[this.currentViewLocation+this.cursor])
         else:
-            none(string)
+            none(T)
 
-proc moveViewUp(this: ListPane) =
+proc moveViewUp[T](this: ListPane[T]) =
     this.currentViewLocation = max(0, this.currentViewLocation-1)
     this.updateView()
 
-proc moveViewDown(this: ListPane) =
+proc moveViewDown[T](this: ListPane[T]) =
     this.currentViewLocation =
         if this.currentViewLocation == len(this.values)-this.height: # at the bottom
             this.currentViewLocation
@@ -44,14 +44,14 @@ proc moveViewDown(this: ListPane) =
             this.currentViewLocation+1
     this.updateView()
 
-proc up*(this: ListPane) =
+proc up*[T](this: ListPane[T]) =
     let hitTop = this.cursor == 0
     if hitTop:
         this.moveViewUp()
     else:
         this.cursor -= 1
 
-proc down*(this: ListPane) =
+proc down*[T](this: ListPane[T]) =
     if this.cursor == len(this.values)-1:
         return
     let hitBottom = this.cursor == this.height-1
@@ -60,13 +60,13 @@ proc down*(this: ListPane) =
     else:
         this.cursor += 1
 
-proc setValues*(this: ListPane, values: seq[string]) =
+proc setValues*[T](this: ListPane[T], values: seq[T]) =
     this.cursor = 0
     this.currentViewLocation = 0
     this.values = values
     this.updateView()
 
-method drawTo*(this: ListPane, nb: Nimbox) =
+method drawTo*[T](this: ListPane[T], nb: Nimbox) =
     for i, t in this.currentView:
         let style: Style =
             if i == this.cursor:

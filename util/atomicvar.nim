@@ -10,11 +10,15 @@ proc initAtomic*[T](value: T): Atomic[T] =
     lock.initLock()
     return Atomic[T](value: value, lock: lock)
 
-proc getValue*[T](this: Atomic[T]): T = this.value
-proc setValue*[T](this: Atomic[T], value: T) = this.value = value
+proc getValue*[T](this: Atomic[T]): T =
+    withLock this.lock:
+        result = this.value
+proc setValue*[T](this: Atomic[T], value: T) =
+    withLock this.lock:
+        this.value = value
 
 proc getAndSet*[T](this: Atomic[T], value: T): T =
     withLock this.lock:
-        result = this.getValue()
-        this.setValue(value)
+        result = this.value
+        this.value = value
 

@@ -11,7 +11,6 @@ import
     streams
 
 import
-    mpd/searchstate,
     mpd/album,
     mpd/songutils,
     mpd/mpdctl,
@@ -56,12 +55,7 @@ proc main(cmdline: seq[string]): int =
     defer: mpdCtl.close()
 
     if interactive:
-        if song_mode:
-            var searchState: SearchState[ptr mpd_song] = initSongSearchState(mpdCtl)
-            startUi(searchState, mpdCtl)
-        else:
-            var searchState: SearchState[mpd_album] = initAlbumSearchState(mpdCtl)
-            startUi(searchState, mpdCtl)
+        startUi(mpdCtl, songMode)
     elif len(search_strings) > 0:
         if song_mode:
             echo(mpdCtl.searchSongs(search_strings))

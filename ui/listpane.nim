@@ -16,9 +16,9 @@ import
 type MpdListPane* = ref object of Pane
     songMode*: bool
     values*: seq[MpdEither]
-    songValues*: seq[ptr mpd_song]
-    albumValues*: seq[mpd_album]
-    wrap*: bool # TODO actually implement
+    songValues: seq[ptr mpd_song]
+    albumValues: seq[mpd_album]
+    wrap: bool # TODO actually implement
     currentViewLocation: int
     currentView*: seq[string]
     cursor*: int
@@ -62,8 +62,7 @@ proc moveViewDown(this: MpdListPane) =
     this.updateView()
 
 proc up*(this: MpdListPane) =
-    let hitTop = this.cursor == 0
-    if hitTop:
+    if this.cursor == 0:
         this.moveViewUp()
     else:
         this.cursor -= 1
@@ -71,8 +70,7 @@ proc up*(this: MpdListPane) =
 proc down*(this: MpdListPane) =
     if this.cursor == len(this.values)-1:
         return
-    let hitBottom = this.cursor == this.height-1
-    if hitBottom:
+    if this.cursor == this.height-1:
         this.moveViewDown()
     else:
         this.cursor += 1
@@ -92,6 +90,3 @@ proc drawTo*(state: ListState, nb: Nimbox, x, y: int) =
             else:
                 styNone
         nb.print(x, y + i, t, clrDefault, clrDefault, style)
-    #nb.print(this.x+100, this.y, $this.cursor)
-    #nb.print(this.x+110, this.y, $this.currentViewLocation)
-    #nb.print(this.x+100, this.y+1, $this.getCurrentValue())

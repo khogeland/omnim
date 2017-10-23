@@ -2,8 +2,6 @@
 
 Omnim is an omni search utility for MPD, displayed as an interactive list of results that updates as you type.
 
-This is my first real Nim project, so the code surely has plenty of messiness, antipatterns, etc. Be warned.
-
 ### Usage
 
 - Up/Down: Navigate list

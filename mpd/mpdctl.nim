@@ -4,6 +4,7 @@ import
 
 import
     songutils,
+    mpdeither,
     album
 
 type MpdCtl* = ref object
@@ -35,6 +36,13 @@ proc enqueue*(this: MpdCtl, album: mpd_album) =
     for song in album.tracks:
         this.enqueue(song)
 
+proc enqueue*(this: MpdCtl, either: MpdEither) =
+    case either.kind:
+        of Song:
+            this.enqueue(either.song)
+        of Album:
+            this.enqueue(either.album)
+
 proc replaceAndPlay*(this: MpdCtl, song: ptr mpd_song) =
     this.openIfNeeded()
     discard this.conn.mpd_run_clear()
@@ -47,6 +55,12 @@ proc replaceAndPlay*(this: MpdCtl, album: mpd_album) =
     this.enqueue(album)
     discard this.conn.mpd_run_play()
 
+proc replaceAndPlay*(this: MpdCtl, either: MpdEither) =
+    case either.kind:
+        of Song:
+            this.replaceAndPlay(either.song)
+        of Album:
+            this.replaceAndPlay(either.album)
 
 proc searchSongs*(this: MpdCtl, searchStrings: seq[string]): seq[ptr mpd_song] =
     this.openIfNeeded()

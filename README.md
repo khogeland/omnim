@@ -6,7 +6,10 @@ This is my first real Nim project, so the code surely has plenty of messiness, a
 
 ### Usage
 
-Move with arrow keys. Enter replaces the current playlist with the selection and starts playing it.
+- Up/Down: Navigate list
+- Enter: Replace queue with selection and play.
+- Ctrl-Space: Add selection to queue.
+- Ctrl-Z: Switch between song and album results.
 
 ```bash
 omnim

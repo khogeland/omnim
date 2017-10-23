@@ -6,8 +6,6 @@
     - Nimbox always reports that Alt is held down (need to fix for text navigation)
     - Holding down Ctrl does totally bizarre things (Ctrl-Space = "2", Ctrl-[a-z] = capital letters, Ctrl-3 = Escape). Probably a single bug.
 - Album mode should only return full-album results. This is difficult, because MPD doesn't have a concept of "album". Could perform an extra query for every "album" we create (probably best, should be quick.) Could optimize to only query albums that would be visible on screen.
-- Allow switching between album and song mode while running. Probably means refactor/remove `SearchState`.
-- Append to playlist.
 - Text navigation.
 - Error handling looks bad. Cosmetic issue.
 - MPD gives nonsensical errors (out-of-memory when killed??). Cosmetic issue, not my code. Might be best to leave it.

@@ -1,6 +1,5 @@
 import
     pane,
-    uistate,
     ../mpd/album,
     ../mpd/mpdeither
 
@@ -82,11 +81,11 @@ proc setValues*(this: MpdListPane, values: seq[ptr mpd_song]) =
     this.albumValues = albums_for(values)
     this.updateView()
 
-proc drawTo*(state: ListState, nb: Nimbox, x, y: int) =
-    for i, t in state.currentView:
+proc drawTo*(this: MpdListPane, nb: Nimbox) =
+    for i, t in this.currentView:
         let style: Style =
-            if i == state.cursor:
+            if i == this.cursor:
                 styReverse
             else:
                 styNone
-        nb.print(x, y + i, t, clrDefault, clrDefault, style)
+        nb.print(this.x, this.y + i, t, clrDefault, clrDefault, style)

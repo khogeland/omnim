@@ -4,8 +4,7 @@ import
     unicode
 
 import
-    pane,
-    uistate
+    pane
 
 import
     nimbox
@@ -28,11 +27,11 @@ proc handleSearchBoxInput*(this: SearchBox, input: Rune) =
 proc initSearchBox*(x, y, w, h: int): SearchBox =
     return SearchBox(x: x, y: y, width: w, height: h, contents: @[])
 
-proc drawTo*(state: SearchBoxState, nb: Nimbox, x, y: int) =
-    let line = PREFIX & $state.query
-    let lineLen = len(state.query) + PREFIX_LEN
+proc drawTo*(this: SearchBox, nb: Nimbox) =
+    let line = PREFIX & $this.contents
+    let lineLen = len(this.contents) + PREFIX_LEN
     var afterCursor = spaces(nb.width-lineLen-1)
-    nb.print(x, y, line, clrDefault, clrDefault, styUnderline)
-    nb.print(x + lineLen, y, " ", clrDefault, clrDefault, styReverse)
-    nb.print(x + lineLen + 1, y, afterCursor, clrDefault, clrDefault, styUnderline)
+    nb.print(this.x, this.y, line, clrDefault, clrDefault, styUnderline)
+    nb.print(this.x + lineLen, this.y, " ", clrDefault, clrDefault, styReverse)
+    nb.print(this.x + lineLen + 1, this.y, afterCursor, clrDefault, clrDefault, styUnderline)
 

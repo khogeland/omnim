@@ -68,7 +68,7 @@ proc searchLoop(myCtl: MpdCtl) {.thread.} =
 
 proc stateLoop(myCtl: MpdCtl, songMode: bool) {.thread.} =
     var searchBox = initSearchBox(0, 0, nb.width, 1)
-    var listPane = initMpdListPane(0, 1, nb.width, nb.height, songMode)
+    var listPane = initMpdListPane(0, 1, nb.width, nb.height-1, songMode)
     while true:
         let event: OmnimStateEvent = stateChannel.recv()
         var drawThreadUpdate = OmnimDrawEvent(kind: UpdateState)
@@ -111,7 +111,7 @@ proc stateLoop(myCtl: MpdCtl, songMode: bool) {.thread.} =
                             searchBox.backspace()
                             updateSearchBoxState()
                     of EventType.Resize:
-                        listPane.resizePane(nbEvent.w, nbEvent.h)
+                        listPane.resizePane(nbEvent.w, nbEvent.h-1)
                         searchBox.resizePane(nbEvent.w, 1)
                         updateListState()
                         updateSearchBoxState()

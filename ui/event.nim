@@ -1,19 +1,32 @@
 import
     libmpdclient,
     nimbox,
-    ../mpd/album
+    ../mpd/mpdeither
 
-type OmnimSearchEventType* = enum
-    UpdateQuery
-    ExecuteSearch
-    SearchClose
+type OmnimMpdRequestType* = enum
+    MpdReplaceAndPlay
+    MpdEnqueue
+    MpdSearch
+    MpdClose
 
-type OmnimSearchResultsEvent* = ref object
-    songs*: seq[ptr mpd_song]
+type OmnimMpdResponseType* = enum
+    MpdSearchResults
+    MpdErrorResponse
 
-type OmnimSearchEvent* = ref object
-    case kind*: OmnimSearchEventType
-    of UpdateQuery:
-        query*: string
+type OmnimMpdRequest* = ref object
+    case kind*: OmnimMpdRequestType
+    of MpdReplaceAndPlay:
+        toReplaceAndPlay*: seq[MpdEither]
+    of MpdEnqueue:
+        toEnqueue*: seq[MpdEither]
+    of MpdSearch:
+        searchQuery*: string
     else: discard
+
+type OmnimMpdResponse* = ref object
+    case kind*: OmnimMpdResponseType
+    of MpdSearchResults:
+        songResults*: seq[ptr mpd_song]
+    of MpdErrorResponse:
+        errorMessage*: string
 

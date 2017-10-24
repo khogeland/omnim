@@ -15,7 +15,6 @@ omnim
 -H --host     MPD host
 -p --port     MPD port
 -t --timeout  MPD connection timeout
--n --noninteractive [search-terms] Non-interactive mode (results to stdout)
 ```
 
 

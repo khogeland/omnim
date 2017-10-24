@@ -7,17 +7,19 @@ import
     mpdeither,
     album
 
+type MpdCtlError* = object of Exception
+
 type MpdCtl* = ref object
     conn*: ptr mpd_connection
     host: string
     port: uint16
     timeout_ms: uint32
 
-proc openIfNeeded(this: MpdCtl) =
+proc openIfNeeded*(this: MpdCtl) =
     if this.conn == nil or this.conn.mpd_connection_get_error() == MPD_ERROR_CLOSED:
         var conn = mpd_connection_new(cast[cstring](this.host), cast[cuint](this.port), this.timeout_ms)
         if conn.mpd_connection_get_error() != MPD_ERROR_SUCCESS:
-            raise newException(IOError, cast[string](conn.mpd_connection_get_error_message))
+            raise newException(MpdCtlError, $conn.mpd_connection_get_error_message)
         else:
             this.conn = conn
 
@@ -43,6 +45,10 @@ proc enqueue*(this: MpdCtl, either: MpdEither) =
         of Album:
             this.enqueue(either.album)
 
+proc enqueue*(this: MpdCtl, eithers: seq[MpdEither]) =
+    for either in eithers:
+        this.enqueue(either)
+
 proc replaceAndPlay*(this: MpdCtl, song: ptr mpd_song) =
     this.openIfNeeded()
     discard this.conn.mpd_run_clear()
@@ -61,6 +67,10 @@ proc replaceAndPlay*(this: MpdCtl, either: MpdEither) =
             this.replaceAndPlay(either.song)
         of Album:
             this.replaceAndPlay(either.album)
+
+proc replaceAndPlay*(this: MpdCtl, eithers: seq[MpdEither]) =
+    for either in eithers:
+        this.replaceAndPlay(either)
 
 proc searchSongs*(this: MpdCtl, searchStrings: seq[string]): seq[ptr mpd_song] =
     this.openIfNeeded()

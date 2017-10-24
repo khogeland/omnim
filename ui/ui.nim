@@ -27,39 +27,53 @@ import
 const MINIMUM_CHARACTERS = 3
 
 var nb: Nimbox
-var resultsChannel: Channel[OmnimSearchResultsEvent]
-var searchChannel: Channel[OmnimSearchEvent]
+var mpdRequestChannel: Channel[OmnimMpdRequest]
+var mpdResponseChannel: Channel[OmnimMpdResponse]
 
-proc searchLoop(myCtl: MpdCtl) {.thread.} =
-    var nextQuery = ""
-    while true:
-        let event: OmnimSearchEvent = searchChannel.recv()
-        case event.kind:
-            of UpdateQuery:
-                nextQuery = event.query
-            of ExecuteSearch:
-                if len(nextQuery) >= MINIMUM_CHARACTERS:
-                    let query = nextQuery
-                    nextQuery = ""
-                    resultsChannel.send(OmnimSearchResultsEvent(songs: myCtl.searchSongs(query)))
-            of SearchClose:
-                return
+type UiResultType* = enum
+    UiSuccess
+    UiFailure
+
+type UiResult* = ref object
+    case kind*: UiResultType
+    of UiFailure: error*: string
+    else: discard
+
+proc mpdActorLoop(host: string, port: uint16, timeout: uint32) {.thread.} =
+    try:
+        var mpdCtl = initMpdCtl(host, port, timeout)
+        defer: mpdCtl.close()
+        while true:
+            let request: OmnimMpdRequest = mpdRequestChannel.recv()
+            case request.kind:
+                of MpdSearch:
+                    mpdResponseChannel.send(OmnimMpdResponse(kind: MpdSearchResults, songResults: mpdCtl.searchSongs(request.searchQuery)))
+                of MpdReplaceAndPlay:
+                    mpdCtl.replaceAndPlay(request.toReplaceAndPlay)
+                of MpdEnqueue:
+                    mpdCtl.enqueue(request.toEnqueue)
+                of MpdClose:
+                    return
+    except:
+        mpdResponseChannel.send(OmnimMpdResponse(kind: MpdErrorResponse, errorMessage: getCurrentExceptionMsg()))
 
 proc stopUi*() =
     nb.shutdown()
-    searchChannel.send(OmnimSearchEvent(kind: SearchClose))
-    close resultsChannel
-    close searchChannel
+    mpdRequestChannel.send(OmnimMpdRequest(kind: MpdClose))
+    close mpdResponseChannel
+    close mpdRequestChannel
 
-proc startUi*(mpd: MpdCtl, songMode: bool = false) =
+proc runUi*(host: string, port: uint16, timeout: uint32, songMode: bool = false): UiResult =
+    result = UiResult(kind: UiSuccess)
     nb = newNimbox()
-    open resultsChannel
-    open searchChannel
-    spawn searchLoop(mpd)
+    open mpdResponseChannel
+    open mpdRequestChannel
+    spawn mpdActorLoop(host, port, timeout)
     defer: stopUi()
     var lastTime = 0.0
     var searchBox = initSearchBox(0, 0, nb.width, 1)
     var listPane = initMpdListPane(0, 1, nb.width, nb.height-1, songMode)
+    var queryChanged = false
     while true:
 
         nb.clear()
@@ -68,13 +82,12 @@ proc startUi*(mpd: MpdCtl, songMode: bool = false) =
         nb.present()
 
         let thisTime = epochTime()
-        if lastTime + 0.1 < thisTime: # Execute search every 100ms
+        if queryChanged and lastTime + 0.1 < thisTime: # Execute search every 100ms
             lastTime = thisTime
-            searchChannel.send(OmnimSearchEvent(kind: ExecuteSearch))
-
-        var searchThreadUpdate = OmnimSearchEvent(kind: UpdateQuery)
-
-        proc updateSearchMessage() = searchThreadUpdate.query = $searchBox.contents
+            queryChanged = false
+            let nextQuery = $searchBox.contents
+            if len(nextQuery) >= MINIMUM_CHARACTERS:
+                mpdRequestChannel.send(OmnimMpdRequest(kind: MpdSearch, searchQuery: nextQuery))
 
         let nbEvent = nb.peekEvent(10)
         case nbEvent.kind:
@@ -86,21 +99,27 @@ proc startUi*(mpd: MpdCtl, songMode: bool = false) =
                 elif (nbEvent.sym == Symbol.Up):
                     listPane.up()
                 elif nbEvent.sym == Symbol.Enter:
-                    listPane.getCurrentValue().map(proc(value: MpdEither) = mpd.replaceAndPlay(value))
+                    listPane.getCurrentValue().map(proc(value: MpdEither) = mpdRequestChannel.send(OmnimMpdRequest(
+                        kind: MpdReplaceAndPlay,
+                        toReplaceAndPlay: @[value]
+                    )))
                 elif nbEvent.ch == Rune('2') and nbEvent.mods.contains(Modifier.Ctrl):
-                    listPane.getCurrentValue().map(proc(value: MpdEither) = mpd.enqueue(value))
+                    listPane.getCurrentValue().map(proc(value: MpdEither) = mpdRequestChannel.send(OmnimMpdRequest(
+                        kind: MpdEnqueue,
+                        toEnqueue: @[value]
+                    )))
                     listPane.down()
                 elif nbEvent.ch == Rune('Z') and nbEvent.mods.contains(Modifier.Ctrl):
                     listPane.toggleSongMode()
                 elif nbEvent.sym == Symbol.Character:
                     searchBox.handleSearchBoxInput(nbEvent.ch)
-                    updateSearchMessage()
+                    queryChanged = true
                 elif nbEvent.sym == Symbol.Space:
                     searchBox.handleSearchBoxInput(Rune(' '))
-                    updateSearchMessage()
+                    queryChanged = true
                 elif nbEvent.sym == Symbol.Backspace:
                     searchBox.backspace()
-                    updateSearchMessage()
+                    queryChanged = true
             of EventType.Resize:
                 listPane.resizePane(nbEvent.w, nbEvent.h-1)
                 searchBox.resizePane(nbEvent.w, 1)
@@ -110,9 +129,11 @@ proc startUi*(mpd: MpdCtl, songMode: bool = false) =
         if len(searchBox.contents) < MINIMUM_CHARACTERS:
             listPane.setValues(@[])
 
-        if resultsChannel.peek() > 0:
-            listPane.setValues(resultsChannel.recv().songs)
-
-        if searchThreadUpdate.query != nil:
-            searchChannel.send(searchThreadUpdate)
+        if mpdResponseChannel.peek() > 0:
+            let response = mpdResponseChannel.recv()
+            case response.kind:
+                of MpdSearchResults:
+                    listPane.setValues(response.songResults)
+                of MpdErrorResponse:
+                    return UiResult(kind: UiFailure, error: "MPD error: " & response.errorMessage)
 
